@@ -77,7 +77,7 @@ async function onSubmit(values: z.infer<typeof SignupValidation>) {
           Create a new Account
         </h2>
         <p className="text-light-3 small-medium md:base-regular mt-2">
-          To use Snapgram, please enter your details
+          To use Snapgram, please enter your details.
         </p>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5 w-full mt-4">
           <FormField
