@@ -13,10 +13,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { SignupValidation } from "@/lib/validation";
 import Loader from "@/components/shared/Loader";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+// import { Link, useNavigate } from "react-router-dom";
+import { toast, useToast } from "@/components/ui/use-toast"
+import { useCreateUserAccount, useSignInAccount } from "@/lib/react-query/queriesAndMutations";
+import { signInAccount } from "@/lib/appwrite/api";
+import { useUserContext } from "@/context/AuthContext";
+
 
 const SignupForm = () => {
-  const isLoading = false
+  const { toast } = useToast()
+  const { checkAuthUser, isLoading: isUserLoading } = useUserContext()
+  const navigate = useNavigate()
+
+  const { mutateAsync: createUserAccount, isPending: isCreatingAccount } = useCreateUserAccount()
+  
+  const { mutateAsync = signInAccount, isPending: SigningIn } = useSignInAccount()
 
   const form = useForm<z.infer<typeof SignupValidation>>({
     resolver: zodResolver(SignupValidation),
@@ -28,10 +40,34 @@ const SignupForm = () => {
     },
   });
 
-async function onSubmit(values: z.infer<typeof SignupValidation>) {
-    // const newUser = await createUserAccount(values)    
-  }
 
+async function onSubmit(values: z.infer<typeof SignupValidation>) {
+    const newUser = await createUserAccount(values)
+
+    if(!newUser) {
+      return toast({
+        title: 'Sign up failed. Please try again.'
+      })
+    }
+
+    const session = await signInAccount({
+      email: values.email,
+      password: values.password
+    })
+
+    if(!session) {
+      return toast({title: "Sign in failed. Please try again."})
+    } 
+    
+    const isLoggedIn = await checkAuthUser(); 
+
+    if(isLoggedIn) {
+      form.reset()
+      navigate("/")
+    } else {
+      toast({title: "Sign up failed. Please try again."})
+    }
+  }
   return (
     <Form {...form}>
       <div className="sm:w-420, flex-center, flex-col">
@@ -97,11 +133,11 @@ async function onSubmit(values: z.infer<typeof SignupValidation>) {
             )}
             />
           <Button type="submit" className="shad-button_primary">
-            {isLoading ? (
-              <div className="flex-center gap-2">
-                <Loader /> Loading...
-              </div>
-            ) : "Sign Up"}
+             {isCreatingAccount ? ( 
+               <div className="flex-center gap-2">
+                 <Loader /> Loading...
+               </div>
+             ): "Sign up"} 
           </Button>
           <p className="text-small-regular text-light-2 text-center mt-2">
             Already have an account?
